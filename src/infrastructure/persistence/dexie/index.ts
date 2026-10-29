@@ -19,4 +19,5 @@ export {
   type WorkDayRecord,
   type WorkScheduleRecord,
 } from './ponto-db'
+export { exportFullBackup, importFullBackup } from './backup'
 export { mapPersistenceError, withPersistence } from './map-persistence-error'

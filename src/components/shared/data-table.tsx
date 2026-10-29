@@ -24,6 +24,8 @@ interface DataTableProps<T> {
   getRowId: (row: T) => string
   caption?: string
   className?: string
+  onRowClick?: (row: T) => void
+  selectedRowId?: string | null
 }
 
 export function DataTable<T>({
@@ -32,6 +34,8 @@ export function DataTable<T>({
   getRowId,
   caption,
   className,
+  onRowClick,
+  selectedRowId,
 }: DataTableProps<T>) {
   return (
     <div className={cn('overflow-x-auto', className)}>
@@ -54,25 +58,50 @@ export function DataTable<T>({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {rows.map((row) => (
-            <TableRow
-              key={getRowId(row)}
-              className="h-12 border-b border-[var(--rule)] hover:bg-[var(--raised)]"
-            >
-              {columns.map((column) => (
-                <TableCell
-                  key={column.id}
-                  className={cn(
-                    'py-2 text-sm text-[var(--text)]',
-                    column.align === 'right' && 'tabular text-right',
-                    column.className,
-                  )}
-                >
-                  {column.cell(row)}
-                </TableCell>
-              ))}
-            </TableRow>
-          ))}
+          {rows.map((row) => {
+            const id = getRowId(row)
+            const selected = selectedRowId === id
+            return (
+              <TableRow
+                key={id}
+                data-selected={selected || undefined}
+                className={cn(
+                  'h-12 border-b border-[var(--rule)]',
+                  onRowClick && 'cursor-pointer',
+                  selected
+                    ? 'bg-[var(--accent-soft)] hover:bg-[var(--accent-soft)]'
+                    : 'hover:bg-[var(--raised)]',
+                )}
+                onClick={onRowClick ? () => onRowClick(row) : undefined}
+                onKeyDown={
+                  onRowClick
+                    ? (event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault()
+                          onRowClick(row)
+                        }
+                      }
+                    : undefined
+                }
+                tabIndex={onRowClick ? 0 : undefined}
+                role={onRowClick ? 'button' : undefined}
+                aria-pressed={onRowClick ? selected : undefined}
+              >
+                {columns.map((column) => (
+                  <TableCell
+                    key={column.id}
+                    className={cn(
+                      'py-2 text-sm text-[var(--text)]',
+                      column.align === 'right' && 'tabular text-right',
+                      column.className,
+                    )}
+                  >
+                    {column.cell(row)}
+                  </TableCell>
+                ))}
+              </TableRow>
+            )
+          })}
         </TableBody>
       </Table>
     </div>
