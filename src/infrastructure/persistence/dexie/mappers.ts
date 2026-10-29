@@ -1,3 +1,4 @@
+import { legacyScheduleToWeekdays } from '@/domain/calculation'
 import type {
   DayOverride,
   TimeEntry,
@@ -21,14 +22,34 @@ export function toUserProfile(record: UserProfileRecord): UserProfile {
 }
 
 export function toUserPreferences(record: UserPreferencesRecord): UserPreferences {
-  return { ...record }
+  return {
+    ...record,
+    absencePolicy: record.absencePolicy ?? 'no_debit',
+  }
 }
 
 export function toWorkSchedule(record: WorkScheduleRecord): WorkSchedule {
+  const weekdays =
+    record.weekdays && record.weekdays.length > 0
+      ? record.weekdays.map((day) => ({ ...day }))
+      : legacyScheduleToWeekdays(record)
+
   return {
-    ...record,
-    workweekDays: [...record.workweekDays],
+    id: record.id,
+    userId: record.userId,
+    mode: record.mode ?? 'weekday_uniform',
+    weekdays,
     periods: record.periods.map((period) => ({ ...period })),
+    workweekDays: [
+      ...(record.workweekDays.length > 0
+        ? record.workweekDays
+        : weekdays.map((day) => day.weekday)),
+    ],
+    timezone: record.timezone,
+    expectedDailyMinutes: record.expectedDailyMinutes,
+    effectiveFrom: record.effectiveFrom,
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt,
   }
 }
 

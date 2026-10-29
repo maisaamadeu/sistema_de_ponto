@@ -11,6 +11,24 @@ import { withPersistence } from './map-persistence-error'
 import { toWorkSchedule } from './mappers'
 import { getPontoDatabase, type PontoDatabase, type WorkScheduleRecord } from './ponto-db'
 
+function toRecord(
+  input: CreateWorkScheduleInput & { id: string; createdAt: string; updatedAt: string },
+): WorkScheduleRecord {
+  return {
+    id: input.id,
+    userId: input.userId,
+    mode: input.mode,
+    weekdays: input.weekdays.map((day) => ({ ...day })),
+    periods: input.periods.map((period) => ({ ...period })),
+    workweekDays: [...input.workweekDays],
+    timezone: input.timezone,
+    expectedDailyMinutes: input.expectedDailyMinutes,
+    effectiveFrom: input.effectiveFrom,
+    createdAt: input.createdAt,
+    updatedAt: input.updatedAt,
+  }
+}
+
 export class DexieWorkScheduleRepository implements WorkScheduleRepository {
   private readonly db: PontoDatabase
 
@@ -49,17 +67,12 @@ export class DexieWorkScheduleRepository implements WorkScheduleRepository {
   create(input: CreateWorkScheduleInput): Promise<WorkSchedule> {
     return withPersistence(async () => {
       const now = new Date().toISOString()
-      const record: WorkScheduleRecord = {
+      const record = toRecord({
+        ...input,
         id: input.id ?? createStableId(),
-        userId: input.userId,
-        periods: input.periods.map((period) => ({ ...period })),
-        workweekDays: [...input.workweekDays],
-        timezone: input.timezone,
-        expectedDailyMinutes: input.expectedDailyMinutes,
-        effectiveFrom: input.effectiveFrom,
         createdAt: now,
         updatedAt: now,
-      }
+      })
       await this.db.schedules.add(record)
       return toWorkSchedule(record)
     })
@@ -70,13 +83,23 @@ export class DexieWorkScheduleRepository implements WorkScheduleRepository {
       const existing = await this.db.schedules.get(id)
       if (!existing) throw new NotFoundError('WorkSchedule', id)
 
-      const record: WorkScheduleRecord = {
-        ...existing,
-        ...input,
-        periods: (input.periods ?? existing.periods).map((period) => ({ ...period })),
-        workweekDays: [...(input.workweekDays ?? existing.workweekDays)],
+      const current = toWorkSchedule(existing)
+      const record = toRecord({
+        id: current.id,
+        userId: current.userId,
+        mode: input.mode ?? current.mode,
+        weekdays: (input.weekdays ?? current.weekdays).map((day) => ({ ...day })),
+        periods: (input.periods ?? current.periods).map((period) => ({ ...period })),
+        workweekDays: [...(input.workweekDays ?? current.workweekDays)],
+        timezone: input.timezone ?? current.timezone,
+        expectedDailyMinutes:
+          input.expectedDailyMinutes !== undefined
+            ? input.expectedDailyMinutes
+            : current.expectedDailyMinutes,
+        effectiveFrom: input.effectiveFrom ?? current.effectiveFrom,
+        createdAt: current.createdAt,
         updatedAt: new Date().toISOString(),
-      }
+      })
       await this.db.schedules.put(record)
       return toWorkSchedule(record)
     })

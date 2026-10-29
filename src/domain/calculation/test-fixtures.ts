@@ -8,10 +8,22 @@ import type {
 
 export const USER_ID = 'user-ana'
 
+const DEFAULT_WEEKDAYS: WorkSchedule['weekdays'] = [1, 2, 3, 4, 5].map((weekday) => ({
+  weekday: weekday as 1 | 2 | 3 | 4 | 5,
+  clockIn: '08:00',
+  breakStart: '12:00',
+  breakEnd: '13:00',
+  clockOut: '17:00',
+  expectedDailyMinutes: 480,
+  expectedManual: false,
+}))
+
 export function makeSchedule(overrides: Partial<WorkSchedule> = {}): WorkSchedule {
   return {
     id: 'schedule-default',
     userId: USER_ID,
+    mode: 'weekday_uniform',
+    weekdays: DEFAULT_WEEKDAYS,
     periods: [
       { start: '08:00', end: '12:00' },
       { start: '13:00', end: '17:00' },

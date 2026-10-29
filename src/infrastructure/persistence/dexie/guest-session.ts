@@ -3,12 +3,14 @@ import type { UserPreferences, UserProfile, WorkSchedule } from '@/domain/entiti
 import { StorageUnavailableError } from '@/domain/errors/repository-error'
 
 import { withPersistence } from './map-persistence-error'
+import { toUserPreferences, toWorkSchedule } from './mappers'
 import { getPontoDatabase, PONTO_DB_SCHEMA_VERSION, type PontoDatabase } from './ponto-db'
 
 export interface GuestSession {
   profile: UserProfile
   preferences: UserPreferences
-  schedule: WorkSchedule
+  /** null até concluir o onboarding inicial. */
+  schedule: WorkSchedule | null
 }
 
 function readStoredGuestUserId(): string | null {
@@ -21,26 +23,9 @@ function storeGuestUserId(userId: string): void {
   localStorage.setItem(GUEST_USER_ID_KEY, userId)
 }
 
-function defaultSchedule(userId: string, now: string): WorkSchedule {
-  return {
-    id: createStableId(),
-    userId,
-    periods: [
-      { start: '08:00', end: '12:00' },
-      { start: '13:00', end: '17:00' },
-    ],
-    workweekDays: [1, 2, 3, 4, 5],
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Sao_Paulo',
-    expectedDailyMinutes: 480,
-    effectiveFrom: '1970-01-01',
-    createdAt: now,
-    updatedAt: now,
-  }
-}
-
 /**
- * Garante perfil, preferências e escala padrão para uso offline sem login.
- * Idempotente: reutiliza o mesmo userId estável entre sessões do navegador.
+ * Garante perfil e preferências para uso offline sem login.
+ * A jornada só é criada no onboarding — não inventamos escala concluída.
  */
 export async function ensureGuestSession(
   db: PontoDatabase = getPontoDatabase(),
@@ -60,20 +45,17 @@ export async function ensureGuestSession(
     const existingProfile = storedId ? await db.profiles.get(storedId) : null
 
     if (existingProfile) {
-      const [preferences, schedules] = await Promise.all([
+      const [preferencesRow, scheduleRows] = await Promise.all([
         db.preferences.get(existingProfile.id),
         db.schedules.where('userId').equals(existingProfile.id).sortBy('effectiveFrom'),
       ])
 
-      if (preferences && schedules[0]) {
+      if (preferencesRow) {
+        const latest = scheduleRows.at(-1) ?? null
         return {
           profile: existingProfile,
-          preferences,
-          schedule: {
-            ...schedules[0],
-            periods: schedules[0].periods.map((period) => ({ ...period })),
-            workweekDays: [...schedules[0].workweekDays],
-          },
+          preferences: toUserPreferences(preferencesRow),
+          schedule: latest ? toWorkSchedule(latest) : null,
         }
       }
     }
@@ -91,46 +73,31 @@ export async function ensureGuestSession(
       userId,
       theme: 'system',
       weekStartsOn: 1,
+      absencePolicy: 'no_debit',
       createdAt: now,
       updatedAt: now,
     }
-    const schedule = defaultSchedule(userId, now)
 
-    await db.transaction(
-      'rw',
-      db.profiles,
-      db.preferences,
-      db.schedules,
-      db.meta,
-      async () => {
-        await db.profiles.put(profile)
+    await db.transaction('rw', db.profiles, db.preferences, db.meta, async () => {
+      await db.profiles.put(profile)
+      const existingPrefs = await db.preferences.get(userId)
+      if (!existingPrefs) {
         await db.preferences.put(preferences)
-        const hasSchedule =
-          (await db.schedules.where('userId').equals(userId).count()) > 0
-        if (!hasSchedule) {
-          await db.schedules.add({
-            ...schedule,
-            periods: schedule.periods.map((period) => ({ ...period })),
-            workweekDays: [...schedule.workweekDays],
-          })
-        }
-        await db.meta.put({ key: 'guestUserId', value: userId })
-      },
-    )
+      }
+      await db.meta.put({ key: 'guestUserId', value: userId })
+    })
 
     storeGuestUserId(userId)
 
-    const persistedSchedule =
-      (await db.schedules.where('userId').equals(userId).first()) ?? schedule
+    const [prefsRow, scheduleRows] = await Promise.all([
+      db.preferences.get(userId),
+      db.schedules.where('userId').equals(userId).sortBy('effectiveFrom'),
+    ])
 
     return {
       profile,
-      preferences: (await db.preferences.get(userId)) ?? preferences,
-      schedule: {
-        ...persistedSchedule,
-        periods: persistedSchedule.periods.map((period) => ({ ...period })),
-        workweekDays: [...persistedSchedule.workweekDays],
-      },
+      preferences: prefsRow ? toUserPreferences(prefsRow) : preferences,
+      schedule: scheduleRows.at(-1) ? toWorkSchedule(scheduleRows.at(-1)!) : null,
     }
   })
 }

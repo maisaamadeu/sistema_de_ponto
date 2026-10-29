@@ -11,6 +11,7 @@ export type {
   UpdateTimeEntryInput,
 } from './time-entry'
 export type {
+  AbsencePolicy,
   ThemePreference,
   UpdateUserPreferencesInput,
   UserPreferences,
@@ -19,7 +20,10 @@ export type { UpdateUserProfileInput, UserProfile } from './user-profile'
 export type { DayKind, WorkDay } from './work-day'
 export type {
   CreateWorkScheduleInput,
+  ScheduleMode,
   UpdateWorkScheduleInput,
+  Weekday,
+  WeekdaySchedule,
   WorkPeriod,
   WorkSchedule,
 } from './work-schedule'
