@@ -14,3 +14,12 @@ export interface DayOverride {
   createdAt: string
   updatedAt: string
 }
+
+export type CreateDayOverrideInput = Omit<
+  DayOverride,
+  'id' | 'createdAt' | 'updatedAt'
+> & { id?: string }
+
+export type UpdateDayOverrideInput = Partial<
+  Omit<DayOverride, 'id' | 'userId' | 'createdAt' | 'updatedAt'>
+>

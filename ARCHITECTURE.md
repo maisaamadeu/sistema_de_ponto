@@ -65,13 +65,26 @@ Motor puro em `src/domain/calculation` (sem React/persistência):
 
 As features e o domínio dependem apenas de interfaces:
 
+- `UserProfileRepository`
+- `UserPreferencesRepository`
+- `WorkScheduleRepository`
 - `TimeEntryRepository`
-- `WorkSettingsRepository`
+- `WorkDayRepository`
+- `DayOverrideRepository`
 
-Implementações atuais:
+Implementações locais (Dexie / IndexedDB, schema v2):
 
-- `DexieTimeEntryRepository`
-- `DexieWorkSettingsRepository`
+- `DexieUserProfileRepository`
+- `DexieUserPreferencesRepository`
+- `DexieWorkScheduleRepository`
+- `DexieTimeEntryRepository` (CRUD + rematerialização transacional do `WorkDay`)
+- `DexieWorkDayRepository`
+- `DexieDayOverrideRepository`
+- `ensureGuestSession()` para uso offline sem login
+
+IDs estáveis (`crypto.randomUUID` / `wd_{userId}_{dateKey}`) preparam sync futura.
+Falhas de quota/indisponibilidade viram `StorageQuotaExceededError` /
+`StorageUnavailableError` / `PersistenceError`.
 
 Reserva futura:
 

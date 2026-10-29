@@ -1,14 +1,28 @@
-export type { DayOverride, DayOverrideKind } from './day-override'
+export type {
+  CreateDayOverrideInput,
+  DayOverride,
+  DayOverrideKind,
+  UpdateDayOverrideInput,
+} from './day-override'
 export type {
   CreateTimeEntryInput,
   PunchType,
   TimeEntry,
   UpdateTimeEntryInput,
 } from './time-entry'
-export type { UserPreferences, ThemePreference } from './user-preferences'
-export type { UserProfile } from './user-profile'
+export type {
+  ThemePreference,
+  UpdateUserPreferencesInput,
+  UserPreferences,
+} from './user-preferences'
+export type { UpdateUserProfileInput, UserProfile } from './user-profile'
 export type { DayKind, WorkDay } from './work-day'
-export type { WorkPeriod, WorkSchedule } from './work-schedule'
+export type {
+  CreateWorkScheduleInput,
+  UpdateWorkScheduleInput,
+  WorkPeriod,
+  WorkSchedule,
+} from './work-schedule'
 
 /** @deprecated Prefer UserProfile + WorkSchedule + UserPreferences. */
-export type { WorkSettings, UpdateWorkSettingsInput } from './work-settings'
+export type { UpdateWorkSettingsInput, WorkSettings } from './work-settings'

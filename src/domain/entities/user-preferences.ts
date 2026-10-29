@@ -8,3 +8,7 @@ export interface UserPreferences {
   createdAt: string
   updatedAt: string
 }
+
+export type UpdateUserPreferencesInput = Partial<
+  Omit<UserPreferences, 'userId' | 'createdAt' | 'updatedAt'>
+>

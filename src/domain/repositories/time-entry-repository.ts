@@ -17,8 +17,8 @@ export interface TimeEntryMonthQuery {
  * residem em `infrastructure` e não vazam para o domínio.
  */
 export interface TimeEntryRepository {
-  listByDate(dateKey: string, userId?: string): Promise<TimeEntry[]>
-  listByMonth(query: TimeEntryMonthQuery, userId?: string): Promise<TimeEntry[]>
+  listByDate(dateKey: string, userId: string): Promise<TimeEntry[]>
+  listByMonth(query: TimeEntryMonthQuery, userId: string): Promise<TimeEntry[]>
   getById(id: string): Promise<TimeEntry | null>
   create(input: CreateTimeEntryInput): Promise<TimeEntry>
   update(id: string, input: UpdateTimeEntryInput): Promise<TimeEntry>

@@ -11,6 +11,7 @@ export const USER_ID = 'user-ana'
 export function makeSchedule(overrides: Partial<WorkSchedule> = {}): WorkSchedule {
   return {
     id: 'schedule-default',
+    userId: USER_ID,
     periods: [
       { start: '08:00', end: '12:00' },
       { start: '13:00', end: '17:00' },
