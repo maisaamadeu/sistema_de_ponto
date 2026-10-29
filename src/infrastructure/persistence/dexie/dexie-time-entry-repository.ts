@@ -11,6 +11,7 @@ import { getPontoDatabase, type TimeEntryRecord } from './ponto-db'
 function toDomain(record: TimeEntryRecord): TimeEntry {
   return {
     id: record.id,
+    userId: record.userId,
     dateKey: record.dateKey,
     type: record.type,
     occurredAt: record.occurredAt,

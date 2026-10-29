@@ -8,6 +8,7 @@ import type { PunchType } from '@/domain/entities'
  */
 export interface TimeEntryRecord {
   id: string
+  userId: string
   dateKey: string
   type: PunchType
   occurredAt: string
