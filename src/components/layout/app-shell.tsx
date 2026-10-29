@@ -1,8 +1,8 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { CalendarDays, Clock3, Settings2 } from 'lucide-react'
 
+import { ThemeToggle } from '@/components/layout/theme-toggle'
 import { cn } from '@/lib/utils'
-import { Separator } from '@/components/ui/separator'
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: Clock3, end: true },
@@ -10,67 +10,97 @@ const navItems = [
   { to: '/configuracoes', label: 'Configurações', icon: Settings2, end: false },
 ] as const
 
+function NavItems({ variant }: { variant: 'sidebar' | 'bottom' }) {
+  return navItems.map((item) => (
+    <NavLink
+      key={item.to}
+      to={item.to}
+      end={item.end}
+      className={({ isActive }) =>
+        cn(
+          variant === 'sidebar' &&
+            'inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm transition-colors duration-150',
+          variant === 'bottom' &&
+            'inline-flex min-h-11 flex-col items-center justify-center gap-1 rounded-md px-2 text-[11px] transition-colors duration-150',
+          isActive
+            ? 'bg-[var(--accent-soft)] font-medium text-[var(--accent-ink)]'
+            : 'text-[var(--muted)] hover:bg-[var(--raised)] hover:text-[var(--text)]',
+        )
+      }
+    >
+      {({ isActive }) => (
+        <>
+          <item.icon
+            className={cn('size-4', isActive ? 'text-[var(--accent)]' : 'text-current')}
+            aria-hidden="true"
+            strokeWidth={isActive ? 2.25 : 1.75}
+          />
+          <span>{item.label}</span>
+        </>
+      )}
+    </NavLink>
+  ))
+}
+
 export function AppShell() {
   return (
-    <div className="bg-background text-foreground flex min-h-svh flex-col">
-      <header className="border-border/80 bg-background/90 sticky top-0 z-10 border-b backdrop-blur">
-        <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 py-3">
-          <div className="min-w-0">
-            <p className="text-muted-foreground text-xs font-medium tracking-[0.16em] uppercase">
+    <div className="bg-background text-foreground min-h-svh lg:flex">
+      <a
+        href="#conteudo-principal"
+        className="sr-only bg-[var(--accent)] text-[var(--on-accent)] focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-md focus:px-3 focus:py-2"
+      >
+        Ir para o conteúdo
+      </a>
+
+      <aside className="hidden w-[var(--sidebar-width)] shrink-0 flex-col border-r border-[var(--border)] lg:flex">
+        <div className="flex h-full flex-col px-3 py-6">
+          <div className="px-3">
+            <p className="text-sm font-semibold tracking-tight text-[var(--text)]">
               Ponto Fácil
             </p>
-            <p className="truncate text-sm font-medium">Controle de jornada</p>
+            <p className="mt-1 text-xs text-[var(--muted)]">Ana Ribeiro · pessoal</p>
           </div>
-          <nav aria-label="Principal" className="hidden items-center gap-1 sm:flex">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.end}
-                className={({ isActive }) =>
-                  cn(
-                    'inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors',
-                    isActive
-                      ? 'bg-muted text-foreground'
-                      : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
-                  )
-                }
-              >
-                <item.icon className="size-4" aria-hidden />
-                {item.label}
-              </NavLink>
-            ))}
-          </nav>
-        </div>
-      </header>
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">
-        <Outlet />
-      </main>
+          <nav aria-label="Principal" className="mt-8 flex flex-col gap-1">
+            <NavItems variant="sidebar" />
+          </nav>
+
+          <div className="mt-auto space-y-3 px-1 pt-6">
+            <p className="px-2 text-xs text-[var(--muted)]">Aparência</p>
+            <ThemeToggle />
+          </div>
+        </div>
+      </aside>
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="flex items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3 lg:hidden">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-[var(--text)]">
+              Ponto Fácil
+            </p>
+            <p className="truncate text-xs text-[var(--muted)]">Ana Ribeiro · pessoal</p>
+          </div>
+          <ThemeToggle compact />
+        </header>
+
+        <main
+          id="conteudo-principal"
+          className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 pb-[calc(var(--bottom-nav-height)+1.5rem+env(safe-area-inset-bottom))] lg:px-8 lg:py-8 lg:pb-8"
+        >
+          <Outlet />
+        </main>
+      </div>
 
       <nav
         aria-label="Principal móvel"
-        className="border-border bg-background sticky bottom-0 border-t sm:hidden"
+        className="fixed inset-x-0 bottom-0 z-20 border-t border-[var(--border)] bg-[var(--ground)] pb-[env(safe-area-inset-bottom)] lg:hidden"
       >
-        <div className="grid grid-cols-3 gap-1 px-2 py-2">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) =>
-                cn(
-                  'inline-flex flex-col items-center gap-1 rounded-lg px-2 py-2 text-xs',
-                  isActive ? 'text-foreground' : 'text-muted-foreground',
-                )
-              }
-            >
-              <item.icon className="size-4" aria-hidden />
-              {item.label}
-            </NavLink>
-          ))}
+        <div
+          className="grid grid-cols-3 gap-1 px-2 pt-1"
+          style={{ minHeight: 'var(--bottom-nav-height)' }}
+        >
+          <NavItems variant="bottom" />
         </div>
-        <Separator />
       </nav>
     </div>
   )
