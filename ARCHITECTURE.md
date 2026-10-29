@@ -45,6 +45,22 @@ src/
 - **app**: composition root da UI (providers + router).
 - **components**: peças visuais reutilizáveis, sem regra de negócio.
 
+## Domínio de jornada e cálculo
+
+Entidades em `src/domain/entities`:
+
+- `UserProfile`, `WorkSchedule` (múltiplos períodos), `TimeEntry`,
+  `WorkDay`, `DayOverride`, `UserPreferences`
+
+Motor puro em `src/domain/calculation` (sem React/persistência):
+
+- minutos inteiros, sessões com intervalo e virada de dia
+- classificação (`complete`, `incomplete`, `no_records`, `rest`, `day_off`,
+  `vacation`, `holiday`, `excused`, `confirmed_absence`)
+- dias sem registro **não** geram débito automático
+- `expectedMinutes` congelado em dias já registrados (`expectedFrozen`)
+- acumuladores de crédito, débito e saldo líquido (mês / geral)
+
 ## Portas e adapters
 
 As features e o domínio dependem apenas de interfaces:

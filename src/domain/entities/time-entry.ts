@@ -1,12 +1,16 @@
 /**
- * Tipos de marcação de ponto suportados pela jornada.
- * Cálculos e regras de sequência ficam para etapas posteriores.
+ * Tipos de marcação de ponto.
+ * Sessões são reconstruídas ordenando marcações por `occurredAt`.
  */
 export type PunchType = 'clock_in' | 'break_start' | 'break_end' | 'clock_out'
 
 export interface TimeEntry {
   id: string
-  /** Data local da jornada no formato yyyy-MM-dd. */
+  userId: string
+  /**
+   * Dia lógico da jornada (yyyy-MM-dd).
+   * Sessões que atravessam a meia-noite permanecem vinculadas ao dia de início.
+   */
   dateKey: string
   type: PunchType
   /** Instantâneo ISO-8601 da marcação. */
@@ -17,6 +21,7 @@ export interface TimeEntry {
 }
 
 export interface CreateTimeEntryInput {
+  userId: string
   dateKey: string
   type: PunchType
   occurredAt: string
@@ -27,4 +32,5 @@ export interface UpdateTimeEntryInput {
   occurredAt?: string
   note?: string | null
   type?: PunchType
+  dateKey?: string
 }
