@@ -1,9 +1,15 @@
-import type { DemoPunch } from '@/features/demo/mock-data'
+import type { PunchType } from '@/domain/entities'
 import { cn } from '@/lib/utils'
 
+export interface PunchStripItem {
+  type: PunchType
+  label: string
+  time: string | null
+}
+
 interface PunchStripProps {
-  punches: DemoPunch[]
-  activeType?: DemoPunch['type']
+  punches: PunchStripItem[]
+  activeType?: PunchType | null
   className?: string
 }
 

@@ -169,7 +169,9 @@ export function WorkScheduleForm({
 
   useEffect(() => {
     form.reset(defaultValues)
-  }, [defaultValues, form])
+    // Intencional: reset só quando os defaults externos mudam (ex.: escala carregada).
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- form.reset é estável
+  }, [defaultValues])
 
   const rootError = firstErrorMessage(form.formState.errors)
   const submitting = form.formState.isSubmitting

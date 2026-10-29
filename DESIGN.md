@@ -241,7 +241,8 @@ Sem ícones em quadrados tingidos.
 - Inter / Roboto / Arial como face principal.
 - Fundo cream genérico + terracota (viés AI).
 - Lorem, Acme, John Doe.
-- Lógica real de ponto nesta etapa — apenas dados fictícios de demonstração.
+- Duplicar regras de cálculo na UI — use o motor em `domain/calculation` /
+  `domain/punching`.
 
 ## 11. Dados fictícios de demo
 

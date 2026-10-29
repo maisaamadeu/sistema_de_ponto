@@ -26,7 +26,7 @@ export function OnboardingPage() {
     [session],
   )
 
-  if (loading) {
+  if (loading && !session) {
     return (
       <div className="mx-auto flex min-h-svh max-w-3xl items-center justify-center px-4">
         <p className="text-sm text-[var(--muted)]">Preparando seu ponto…</p>

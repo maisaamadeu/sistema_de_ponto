@@ -10,7 +10,8 @@ export function OnboardingGate() {
   const { session, loading, error } = useGuestSession()
   const location = useLocation()
 
-  if (loading) {
+  // Só bloqueia a árvore no bootstrap inicial (sem sessão ainda).
+  if (loading && !session) {
     return (
       <div className="flex min-h-svh items-center justify-center bg-[var(--ground)] px-4">
         <p className="text-sm text-[var(--muted)]">Carregando Ponto Fácil…</p>
