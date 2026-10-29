@@ -19,6 +19,7 @@ import {
   PONTO_DB_SCHEMA_VERSION,
   type PontoDatabase,
 } from './ponto-db'
+import { ensureGuestWithSchedule } from './test-helpers'
 
 describe('repositórios Dexie (integração)', () => {
   let db: PontoDatabase
@@ -55,17 +56,18 @@ describe('repositórios Dexie (integração)', () => {
     expect(meta?.value).toBe(String(PONTO_DB_SCHEMA_VERSION))
   })
 
-  it('bootstrap de convidado cria perfil, preferências e escala estáveis', async () => {
+  it('bootstrap de convidado cria perfil e preferências sem jornada até o onboarding', async () => {
     const first = await ensureGuestSession(db)
     expect(first.profile.isGuest).toBe(true)
     expect(first.profile.displayName).toBe('Convidado')
     expect(first.preferences.theme).toBe('system')
-    expect(first.schedule.expectedDailyMinutes).toBe(480)
-    expect(first.schedule.userId).toBe(first.profile.id)
+    expect(first.preferences.absencePolicy).toBe('no_debit')
+    expect(first.preferences.onboardingCompletedAt).toBeUndefined()
+    expect(first.schedule).toBeNull()
 
     const second = await ensureGuestSession(db)
     expect(second.profile.id).toBe(first.profile.id)
-    expect(second.schedule.id).toBe(first.schedule.id)
+    expect(second.schedule).toBeNull()
   })
 
   it('faz CRUD de perfil e preferências', async () => {
@@ -76,8 +78,12 @@ describe('repositórios Dexie (integração)', () => {
     })
     expect(updatedProfile.displayName).toBe('Ana Convidada')
 
-    const updatedPrefs = await preferences.update(guest.profile.id, { theme: 'dark' })
+    const updatedPrefs = await preferences.update(guest.profile.id, {
+      theme: 'dark',
+      absencePolicy: 'auto_debit',
+    })
     expect(updatedPrefs.theme).toBe('dark')
+    expect(updatedPrefs.absencePolicy).toBe('auto_debit')
 
     await preferences.delete(guest.profile.id)
     expect(await preferences.getByUserId(guest.profile.id)).toBeNull()
@@ -87,7 +93,20 @@ describe('repositórios Dexie (integração)', () => {
     const guest = await ensureGuestSession(db)
     const created = await schedules.create({
       userId: guest.profile.id,
-      periods: [{ start: '09:00', end: '18:00' }],
+      mode: 'weekday_uniform',
+      weekdays: [1, 2, 3, 4, 5].map((weekday) => ({
+        weekday: weekday as 1 | 2 | 3 | 4 | 5,
+        clockIn: '09:00',
+        breakStart: '12:00',
+        breakEnd: '13:00',
+        clockOut: '18:00',
+        expectedDailyMinutes: 480,
+        expectedManual: false,
+      })),
+      periods: [
+        { start: '09:00', end: '12:00' },
+        { start: '13:00', end: '18:00' },
+      ],
       workweekDays: [1, 2, 3, 4, 5],
       timezone: 'America/Sao_Paulo',
       expectedDailyMinutes: 480,
@@ -97,6 +116,7 @@ describe('repositórios Dexie (integração)', () => {
     expect(created.id).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
     )
+    expect(created.weekdays).toHaveLength(5)
 
     const effective = await schedules.getEffectiveOn(guest.profile.id, '2026-11-15')
     expect(effective?.id).toBe(created.id)
@@ -109,7 +129,7 @@ describe('repositórios Dexie (integração)', () => {
   })
 
   it('cria/consulta/atualiza/exclui marcações e materializa WorkDay em transação', async () => {
-    const guest = await ensureGuestSession(db)
+    const guest = await ensureGuestWithSchedule(db)
     const userId = guest.profile.id
     const dateKey = '2026-10-28'
 
@@ -172,7 +192,7 @@ describe('repositórios Dexie (integração)', () => {
   })
 
   it('preserva carga esperada histórica após mudança da escala', async () => {
-    const guest = await ensureGuestSession(db)
+    const guest = await ensureGuestWithSchedule(db)
     const userId = guest.profile.id
     const dateKey = '2026-10-28'
 
@@ -205,7 +225,7 @@ describe('repositórios Dexie (integração)', () => {
   })
 
   it('override de falta confirmada materializa débito e remove ao excluir', async () => {
-    const guest = await ensureGuestSession(db)
+    const guest = await ensureGuestWithSchedule(db)
     const userId = guest.profile.id
     const dateKey = '2026-10-29'
 

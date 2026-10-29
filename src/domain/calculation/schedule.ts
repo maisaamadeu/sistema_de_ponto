@@ -1,4 +1,9 @@
-import type { WorkPeriod, WorkSchedule } from '@/domain/entities'
+import type {
+  Weekday,
+  WeekdaySchedule,
+  WorkPeriod,
+  WorkSchedule,
+} from '@/domain/entities'
 
 import { CalculationError } from './errors'
 import {
@@ -7,6 +12,61 @@ import {
   periodDurationMinutes,
   weekdayFromDateKey,
 } from './time-math'
+
+/**
+ * Carga esperada a partir de entrada / intervalo / saída.
+ * Auto: (entrada→início intervalo) + (fim intervalo→saída).
+ */
+export function computeExpectedMinutesFromTimes(input: {
+  clockIn: string
+  breakStart: string
+  breakEnd: string
+  clockOut: string
+}): number {
+  return (
+    periodDurationMinutes(input.clockIn, input.breakStart) +
+    periodDurationMinutes(input.breakEnd, input.clockOut)
+  )
+}
+
+/** Converte um dia da jornada em períodos de trabalho (compatível com o motor). */
+export function weekdayToPeriods(day: WeekdaySchedule): WorkPeriod[] {
+  return [
+    { start: day.clockIn, end: day.breakStart },
+    { start: day.breakEnd, end: day.clockOut },
+  ]
+}
+
+export function resolveWeekdaySchedule(
+  schedule: WorkSchedule,
+  weekday: Weekday,
+): WeekdaySchedule | undefined {
+  return schedule.weekdays?.find((day) => day.weekday === weekday)
+}
+
+/**
+ * Carga esperada para uma data, preferindo `weekdays` quando disponível.
+ */
+export function deriveExpectedMinutesForDate(
+  schedule: WorkSchedule,
+  dateKey: string,
+): number {
+  const weekday = weekdayFromDateKey(dateKey)
+  const day = resolveWeekdaySchedule(schedule, weekday)
+  if (day) {
+    if (day.expectedManual) {
+      if (!Number.isInteger(day.expectedDailyMinutes) || day.expectedDailyMinutes < 0) {
+        throw new CalculationError(
+          'INVALID_PERIOD',
+          'expectedDailyMinutes do dia deve ser inteiro ≥ 0',
+        )
+      }
+      return day.expectedDailyMinutes
+    }
+    return computeExpectedMinutesFromTimes(day)
+  }
+  return deriveExpectedDailyMinutes(schedule)
+}
 
 /** Normaliza um período para minutos absolutos em uma janela de 48h (dia + seguinte). */
 export function expandPeriodToAbsoluteRanges(
@@ -87,5 +147,34 @@ export function deriveExpectedDailyMinutes(schedule: WorkSchedule): number {
 
 export function isScheduledWorkday(schedule: WorkSchedule, dateKey: string): boolean {
   const weekday = weekdayFromDateKey(dateKey)
+  if (schedule.weekdays && schedule.weekdays.length > 0) {
+    return schedule.weekdays.some((day) => day.weekday === weekday)
+  }
   return schedule.workweekDays.includes(weekday)
+}
+
+/** Monta weekdays a partir do modelo legado (periods + workweekDays). */
+export function legacyScheduleToWeekdays(schedule: {
+  periods: WorkPeriod[]
+  workweekDays: ReadonlyArray<Weekday>
+  expectedDailyMinutes?: number
+}): WeekdaySchedule[] {
+  const morning = schedule.periods[0] ?? { start: '08:00', end: '12:00' }
+  const afternoon = schedule.periods[1] ?? { start: '13:00', end: '17:00' }
+  const expected =
+    schedule.expectedDailyMinutes ??
+    sumPeriodsMinutes([
+      { start: morning.start, end: morning.end },
+      { start: afternoon.start, end: afternoon.end },
+    ])
+
+  return schedule.workweekDays.map((weekday) => ({
+    weekday,
+    clockIn: morning.start,
+    breakStart: morning.end,
+    breakEnd: afternoon.start,
+    clockOut: afternoon.end,
+    expectedDailyMinutes: expected,
+    expectedManual: schedule.expectedDailyMinutes !== undefined,
+  }))
 }

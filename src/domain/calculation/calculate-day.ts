@@ -1,9 +1,15 @@
-import type { DayOverride, TimeEntry, WorkDay, WorkSchedule } from '@/domain/entities'
+import type {
+  AbsencePolicy,
+  DayOverride,
+  TimeEntry,
+  WorkDay,
+  WorkSchedule,
+} from '@/domain/entities'
 import { createWorkDayId } from '@/domain/ids'
 
 import { classifyDayKind } from './classify-day'
 import { CalculationError, err, ok, type CalculationResult } from './errors'
-import { deriveExpectedDailyMinutes, isScheduledWorkday } from './schedule'
+import { deriveExpectedMinutesForDate, isScheduledWorkday } from './schedule'
 import { buildWorkSessions, sumWorkedMinutes } from './sessions'
 import { assertDateKey } from './time-math'
 
@@ -29,6 +35,8 @@ export interface CalculateWorkDayInput {
     WorkDay,
     'id' | 'expectedMinutes' | 'expectedFrozen' | 'createdAt'
   > | null
+  /** Preferência de comportamento para dias úteis sem marcações. */
+  absencePolicy?: AbsencePolicy
   /** Referência temporal para sessões ainda abertas. */
   asOfIso?: string
   /** Instantâneo usado em createdAt/updatedAt do materializado. */
@@ -55,7 +63,7 @@ function resolveExpectedMinutes(input: {
 
   if (override) {
     if (override.kind === 'confirmed_absence') {
-      return deriveExpectedDailyMinutes(schedule)
+      return deriveExpectedMinutesForDate(schedule, dateKey)
     }
     // descanso, folga, férias, feriado, abono → sem carga esperada
     return 0
@@ -65,19 +73,23 @@ function resolveExpectedMinutes(input: {
     return 0
   }
 
-  return deriveExpectedDailyMinutes(schedule)
+  return deriveExpectedMinutesForDate(schedule, dateKey)
 }
 
 function resolveBalanceMinutes(input: {
   kind: WorkDay['kind']
   workedMinutes: number
   expectedMinutes: number
+  absencePolicy: AbsencePolicy
 }): number {
-  const { kind, workedMinutes, expectedMinutes } = input
+  const { kind, workedMinutes, expectedMinutes, absencePolicy } = input
 
   switch (kind) {
     case 'no_records':
-      // Regra explícita: dia sem registros não gera débito automático.
+      // Padrão: sem débito. auto_debit debita a carga esperada.
+      if (absencePolicy === 'auto_debit') {
+        return workedMinutes - expectedMinutes
+      }
       return 0
     case 'rest':
     case 'day_off':
@@ -141,14 +153,20 @@ export function calculateWorkDay(
     return err(asCalculationError(error))
   }
 
+  const absencePolicy = input.absencePolicy ?? 'no_debit'
+
   const balanceMinutes = resolveBalanceMinutes({
     kind,
     workedMinutes,
     expectedMinutes,
+    absencePolicy,
   })
 
   const expectedFrozen =
-    Boolean(input.previous?.expectedFrozen) || hasEntries || kind === 'confirmed_absence'
+    Boolean(input.previous?.expectedFrozen) ||
+    hasEntries ||
+    kind === 'confirmed_absence' ||
+    (kind === 'no_records' && absencePolicy === 'auto_debit')
 
   const nowIso = input.nowIso ?? new Date().toISOString()
 

@@ -94,13 +94,25 @@ O composition root (`infrastructure/di/container.ts`) escolhe os adapters.
 Migrar de IndexedDB para Firestore (ou usar ambos) não exige alterar entidades
 nem regras de negócio — apenas o binding e, se necessário, mapeamento DTO.
 
+## Onboarding e configurações
+
+- Primeiro acesso (`onboardingCompletedAt` ausente) → `/onboarding`
+- Formulário Zod: dias, entrada, intervalo, saída, carga (auto/manual),
+  modo segunda–sexta ou personalizado, tema e política de faltas
+- Edição em `/configuracoes` **cria nova versão** de `WorkSchedule`
+  (`effectiveFrom`); versões antigas permanecem para `getEffectiveOn`
+- Preferências (`theme`, `absencePolicy`) atualizam in-place
+- Schema IndexedDB v3: `mode`/`weekdays` na escala + `absencePolicy`/
+  `onboardingCompletedAt` nas preferências
+
 ## Rotas iniciais
 
-| Rota             | Feature       | Estado                     |
-| ---------------- | ------------- | -------------------------- |
-| `/`              | Dashboard     | Página vazia (placeholder) |
-| `/historico`     | Histórico     | Página vazia (placeholder) |
-| `/configuracoes` | Configurações | Página vazia (placeholder) |
+| Rota             | Feature       | Estado                                      |
+| ---------------- | ------------- | ------------------------------------------- |
+| `/onboarding`    | Onboarding    | Jornada inicial (primeiro acesso)           |
+| `/`              | Dashboard     | Placeholder (após onboarding)               |
+| `/historico`     | Histórico     | Placeholder                                 |
+| `/configuracoes` | Configurações | Edição versionada de jornada + preferências |
 
 ## Aliases
 

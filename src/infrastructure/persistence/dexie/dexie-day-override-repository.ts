@@ -66,6 +66,7 @@ export class DexieDayOverrideRepository implements DayOverrideRepository {
         this.db.workDays,
         this.db.timeEntries,
         this.db.schedules,
+        this.db.preferences,
         async () => {
           const existing = await this.db.dayOverrides
             .where('[userId+dateKey]')
@@ -108,6 +109,7 @@ export class DexieDayOverrideRepository implements DayOverrideRepository {
         this.db.workDays,
         this.db.timeEntries,
         this.db.schedules,
+        this.db.preferences,
         async () => {
           await this.db.dayOverrides.put(record)
           await recalculateWorkDayInTransaction(this.db, record.userId, previousDateKey)
@@ -132,6 +134,7 @@ export class DexieDayOverrideRepository implements DayOverrideRepository {
         this.db.workDays,
         this.db.timeEntries,
         this.db.schedules,
+        this.db.preferences,
         async () => {
           await this.db.dayOverrides.delete(id)
           await recalculateWorkDayInTransaction(

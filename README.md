@@ -27,6 +27,12 @@ npm run dev
 | `npm run test:watch`   | Vitest em watch               |
 | `npm run preview`      | Preview do build              |
 
+## Fluxo inicial
+
+No primeiro acesso o app abre `/onboarding` para definir a jornada (dias,
+horários, carga, tema e faltas). Em `/configurações` as edições criam uma
+**nova versão** da escala no IndexedDB, preservando o histórico.
+
 ## Arquitetura
 
-Veja [ARCHITECTURE.md](./ARCHITECTURE.md).
+Veja [ARCHITECTURE.md](./ARCHITECTURE.md) e [DESIGN.md](./DESIGN.md).

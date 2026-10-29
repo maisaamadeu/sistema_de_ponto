@@ -67,6 +67,7 @@ export class DexieTimeEntryRepository implements TimeEntryRepository {
         this.db.workDays,
         this.db.schedules,
         this.db.dayOverrides,
+        this.db.preferences,
         async () => {
           await this.db.timeEntries.add(record)
           await recalculateWorkDayInTransaction(this.db, record.userId, record.dateKey)
@@ -104,6 +105,7 @@ export class DexieTimeEntryRepository implements TimeEntryRepository {
         this.db.workDays,
         this.db.schedules,
         this.db.dayOverrides,
+        this.db.preferences,
         async () => {
           await this.db.timeEntries.put(record)
           await recalculateWorkDayInTransaction(this.db, record.userId, previousDateKey)
@@ -128,6 +130,7 @@ export class DexieTimeEntryRepository implements TimeEntryRepository {
         this.db.workDays,
         this.db.schedules,
         this.db.dayOverrides,
+        this.db.preferences,
         async () => {
           await this.db.timeEntries.delete(id)
           await recalculateWorkDayInTransaction(

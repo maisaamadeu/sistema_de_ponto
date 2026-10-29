@@ -25,7 +25,7 @@ export async function recalculateWorkDayInTransaction(
   options: RecalculateWorkDayOptions = {},
 ): Promise<WorkDayRecord | null> {
   const { asOfIso, softInvalidSequence = false } = options
-  const [entries, override, previous, schedules] = await Promise.all([
+  const [entries, override, previous, schedules, preferences] = await Promise.all([
     db.timeEntries
       .where('[userId+dateKey]')
       .equals([userId, dateKey])
@@ -33,6 +33,7 @@ export async function recalculateWorkDayInTransaction(
     db.dayOverrides.where('[userId+dateKey]').equals([userId, dateKey]).first(),
     db.workDays.where('[userId+dateKey]').equals([userId, dateKey]).first(),
     db.schedules.where('userId').equals(userId).sortBy('effectiveFrom'),
+    db.preferences.get(userId),
   ])
 
   const scheduleRecord = [...schedules]
@@ -62,6 +63,7 @@ export async function recalculateWorkDayInTransaction(
           createdAt: previous.createdAt,
         }
       : null,
+    absencePolicy: preferences?.absencePolicy ?? 'no_debit',
     asOfIso,
   })
 

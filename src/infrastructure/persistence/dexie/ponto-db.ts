@@ -1,15 +1,19 @@
 import Dexie, { type EntityTable, type Table } from 'dexie'
 
 import type {
+  AbsencePolicy,
   DayKind,
   DayOverrideKind,
   PunchType,
+  ScheduleMode,
   ThemePreference,
+  Weekday,
+  WeekdaySchedule,
   WorkPeriod,
 } from '@/domain/entities'
 
 /** Versão atual do schema IndexedDB. */
-export const PONTO_DB_SCHEMA_VERSION = 2
+export const PONTO_DB_SCHEMA_VERSION = 3
 
 export interface UserProfileRecord {
   id: string
@@ -24,6 +28,8 @@ export interface UserPreferencesRecord {
   userId: string
   theme: ThemePreference
   weekStartsOn: 0 | 1
+  absencePolicy?: AbsencePolicy
+  onboardingCompletedAt?: string
   createdAt: string
   updatedAt: string
 }
@@ -31,8 +37,10 @@ export interface UserPreferencesRecord {
 export interface WorkScheduleRecord {
   id: string
   userId: string
+  mode?: ScheduleMode
+  weekdays?: WeekdaySchedule[]
   periods: WorkPeriod[]
-  workweekDays: Array<0 | 1 | 2 | 3 | 4 | 5 | 6>
+  workweekDays: Weekday[]
   timezone: string
   expectedDailyMinutes?: number
   effectiveFrom: string
@@ -85,6 +93,7 @@ export interface MetaRecord {
  * Banco local versionado.
  * v1: timeEntries + workSettings (legado da base)
  * v2: modelo de domínio completo para modo convidado
+ * v3: jornada por dia da semana + preferências de falta/onboarding
  */
 export class PontoDatabase extends Dexie {
   profiles!: EntityTable<UserProfileRecord, 'id'>
@@ -106,6 +115,25 @@ export class PontoDatabase extends Dexie {
       workSettings: 'id',
     })
 
+    this.version(2)
+      .stores({
+        timeEntries:
+          'id, userId, dateKey, occurredAt, [userId+dateKey], [userId+dateKey+occurredAt]',
+        workSettings: null,
+        profiles: 'id, isGuest',
+        preferences: 'userId',
+        schedules: 'id, userId, effectiveFrom, [userId+effectiveFrom]',
+        workDays: 'id, userId, dateKey, [userId+dateKey]',
+        dayOverrides: 'id, userId, dateKey, [userId+dateKey]',
+        meta: 'key',
+      })
+      .upgrade(async (tx) => {
+        await tx.table('meta').put({
+          key: 'schemaVersion',
+          value: '2',
+        })
+      })
+
     this.version(PONTO_DB_SCHEMA_VERSION)
       .stores({
         timeEntries:
@@ -119,7 +147,42 @@ export class PontoDatabase extends Dexie {
         meta: 'key',
       })
       .upgrade(async (tx) => {
-        // Garante meta de versão mesmo em upgrades a partir de v1 vazia/parcial.
+        const prefs = tx.table<UserPreferencesRecord>('preferences')
+        await prefs.toCollection().modify((row) => {
+          if (!row.absencePolicy) row.absencePolicy = 'no_debit'
+        })
+
+        const schedules = tx.table<WorkScheduleRecord>('schedules')
+        await schedules.toCollection().modify((row) => {
+          if (!row.mode) row.mode = 'weekday_uniform'
+          if (!row.weekdays || row.weekdays.length === 0) {
+            const morning = row.periods[0] ?? { start: '08:00', end: '12:00' }
+            const afternoon = row.periods[1] ?? { start: '13:00', end: '17:00' }
+            const expected =
+              row.expectedDailyMinutes ??
+              (() => {
+                const toMin = (t: string) => {
+                  const [h, m] = t.split(':').map(Number)
+                  return h * 60 + m
+                }
+                return (
+                  toMin(morning.end) -
+                  toMin(morning.start) +
+                  (toMin(afternoon.end) - toMin(afternoon.start))
+                )
+              })()
+            row.weekdays = row.workweekDays.map((weekday) => ({
+              weekday,
+              clockIn: morning.start,
+              breakStart: morning.end,
+              breakEnd: afternoon.start,
+              clockOut: afternoon.end,
+              expectedDailyMinutes: expected,
+              expectedManual: row.expectedDailyMinutes !== undefined,
+            }))
+          }
+        })
+
         await tx.table('meta').put({
           key: 'schemaVersion',
           value: String(PONTO_DB_SCHEMA_VERSION),

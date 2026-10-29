@@ -16,10 +16,15 @@ export {
 } from './errors'
 export {
   assertNoOverlappingPeriods,
+  computeExpectedMinutesFromTimes,
   deriveExpectedDailyMinutes,
+  deriveExpectedMinutesForDate,
   expandPeriodToAbsoluteRanges,
   isScheduledWorkday,
+  legacyScheduleToWeekdays,
+  resolveWeekdaySchedule,
   sumPeriodsMinutes,
+  weekdayToPeriods,
 } from './schedule'
 export {
   assertSessionsDoNotOverlap,
