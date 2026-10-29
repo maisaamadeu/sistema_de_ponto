@@ -1,13 +1,14 @@
 import { cn } from '@/lib/utils'
 
-export type StatusTone = 'idle' | 'working' | 'on_break' | 'done' | 'error'
+export type StatusTone = 'idle' | 'working' | 'on_break' | 'done' | 'incomplete' | 'error'
 
 const labels: Record<StatusTone, string> = {
   idle: 'Fora de jornada',
   working: 'Em jornada',
   on_break: 'Em intervalo',
   done: 'Jornada fechada',
-  error: 'Incompleto',
+  incomplete: 'Jornada incompleta',
+  error: 'Marcações inválidas',
 }
 
 const dotClass: Record<StatusTone, string> = {
@@ -15,6 +16,7 @@ const dotClass: Record<StatusTone, string> = {
   working: 'bg-[var(--accent)]',
   on_break: 'bg-[var(--warning)]',
   done: 'bg-[var(--positive)]',
+  incomplete: 'bg-[var(--warning)]',
   error: 'bg-[var(--negative)]',
 }
 

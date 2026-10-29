@@ -110,7 +110,7 @@ nem regras de negócio — apenas o binding e, se necessário, mapeamento DTO.
 | Rota             | Feature       | Estado                                      |
 | ---------------- | ------------- | ------------------------------------------- |
 | `/onboarding`    | Onboarding    | Jornada inicial (primeiro acesso)           |
-| `/`              | Dashboard     | Placeholder (após onboarding)               |
+| `/`              | Dashboard     | Ponto ao vivo (próximo punch + saldo live)  |
 | `/historico`     | Histórico     | Placeholder                                 |
 | `/configuracoes` | Configurações | Edição versionada de jornada + preferências |
 

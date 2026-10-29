@@ -2,51 +2,80 @@ import { Link } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
 import {
-  DataTable,
-  type DataTableColumn,
   PunchStrip,
   StatusIndicator,
   SummaryCard,
+  type StatusTone,
 } from '@/components/shared'
-import {
-  demoHistoryRows,
-  demoPunchStrip,
-  demoTodaySummaries,
-  type DemoDayRow,
-} from '@/features/demo/mock-data'
+import { ManualPunchForm } from '@/features/dashboard/manual-punch-form'
+import { useDashboardDay } from '@/features/dashboard/use-dashboard-day'
+import type { JourneyStatus } from '@/domain/punching'
 
-const recentColumns: DataTableColumn<DemoDayRow>[] = [
-  {
-    id: 'date',
-    header: 'Dia',
-    cell: (row) => row.dateLabel,
-  },
-  {
-    id: 'in',
-    header: 'Entrada',
-    align: 'right',
-    cell: (row) => row.clockIn,
-  },
-  {
-    id: 'out',
-    header: 'Saída',
-    align: 'right',
-    cell: (row) => row.clockOut,
-  },
-  {
-    id: 'worked',
-    header: 'Trabalhado',
-    align: 'right',
-    cell: (row) => row.worked,
-  },
-  {
-    id: 'status',
-    header: 'Status',
-    cell: (row) => <StatusIndicator status={row.status} />,
-  },
-]
+function toStatusTone(status: JourneyStatus): StatusTone {
+  if (status === 'invalid') return 'error'
+  return status
+}
 
 export function DashboardPage() {
+  const {
+    loading,
+    error,
+    statusMessage,
+    setStatusMessage,
+    setError,
+    submitting,
+    viewModel,
+    dateKey,
+    punch,
+  } = useDashboardDay()
+
+  if (loading) {
+    return (
+      <section className="space-y-2" aria-labelledby="dashboard-title" aria-busy="true">
+        <h1
+          id="dashboard-title"
+          className="text-[1.75rem] font-bold tracking-tight text-[var(--text)]"
+        >
+          Hoje
+        </h1>
+        <p className="text-sm text-[var(--muted)]">Carregando jornada…</p>
+      </section>
+    )
+  }
+
+  if (!viewModel) {
+    return (
+      <section className="space-y-4" aria-labelledby="dashboard-title">
+        <h1
+          id="dashboard-title"
+          className="text-[1.75rem] font-bold tracking-tight text-[var(--text)]"
+        >
+          Hoje
+        </h1>
+        <p className="text-sm text-[var(--negative)]" role="alert">
+          {error ?? 'Configure sua jornada para começar a bater o ponto.'}
+        </p>
+        <Button type="button" asChild>
+          <Link to="/configuracoes">Ir para configurações</Link>
+        </Button>
+      </section>
+    )
+  }
+
+  const primary = viewModel.nextPunch
+  const primaryDisabled = submitting || primary.disabled === true || primary.type === null
+
+  async function handlePrimaryClick() {
+    if (!primary.type || primaryDisabled) return
+    setStatusMessage(null)
+    setError(null)
+    try {
+      await punch(primary.type, new Date().toISOString())
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Falha ao registrar marcação.')
+    }
+  }
+
   return (
     <section className="space-y-6" aria-labelledby="dashboard-title">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -57,47 +86,83 @@ export function DashboardPage() {
           >
             Hoje
           </h1>
-          <p className="text-sm text-[var(--muted)]">
-            Terça-feira, 28 de out. de 2026 · dados de demonstração
-          </p>
+          <p className="text-sm text-[var(--muted)] capitalize">{viewModel.dateLabel}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <StatusIndicator status="working" />
-          <Button type="button" disabled title="Lógica de ponto fora desta etapa">
-            Registrar saída
+          <StatusIndicator status={toStatusTone(viewModel.status)} />
+          <Button
+            type="button"
+            data-testid="primary-punch"
+            disabled={primaryDisabled}
+            aria-busy={submitting || undefined}
+            onClick={() => void handlePrimaryClick()}
+          >
+            {submitting ? 'Salvando…' : primary.label}
           </Button>
         </div>
       </div>
 
+      <div aria-live="polite" className="min-h-5 space-y-1 text-sm">
+        {statusMessage ? <p className="text-[var(--positive)]">{statusMessage}</p> : null}
+        {error ? (
+          <p className="text-[var(--negative)]" role="alert">
+            {error}
+          </p>
+        ) : null}
+        {primary.disabled && primary.reason ? (
+          <p className="text-[var(--warning)]">{primary.reason}</p>
+        ) : null}
+      </div>
+
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {demoTodaySummaries.map((item) => (
+        {viewModel.summaries.map((item) => (
           <SummaryCard
             key={item.id}
             label={item.label}
             value={item.value}
             caption={item.caption}
+            data-testid={`summary-${item.id}`}
           />
         ))}
       </div>
 
       <div className="space-y-3">
         <h2 className="text-lg font-semibold text-[var(--text)]">Fita de marcações</h2>
-        <PunchStrip punches={demoPunchStrip} activeType="clock_out" />
+        <PunchStrip
+          punches={viewModel.punchStrip}
+          activeType={viewModel.activePunchType}
+        />
       </div>
 
       <div className="space-y-3">
-        <div className="flex items-end justify-between gap-3">
-          <h2 className="text-lg font-semibold text-[var(--text)]">Dias recentes</h2>
-          <Button type="button" variant="outline" size="sm" asChild>
-            <Link to="/historico">Ver histórico</Link>
-          </Button>
+        <h2 className="text-lg font-semibold text-[var(--text)]">Resumo do mês</h2>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {viewModel.monthSummaries.map((item) => (
+            <SummaryCard
+              key={item.id}
+              label={item.label}
+              value={item.value}
+              caption={item.caption}
+            />
+          ))}
         </div>
-        <DataTable
-          columns={recentColumns}
-          rows={demoHistoryRows.slice(0, 3)}
-          getRowId={(row) => row.id}
-          caption="Últimos dias com marcações fictícias"
-        />
+      </div>
+
+      <ManualPunchForm
+        dateKey={dateKey}
+        defaultType={primary.type}
+        disabled={submitting}
+        onSubmit={async ({ type, occurredAt }) => {
+          setStatusMessage(null)
+          setError(null)
+          await punch(type, occurredAt)
+        }}
+      />
+
+      <div className="flex justify-end">
+        <Button type="button" variant="outline" size="sm" asChild>
+          <Link to="/historico">Ver histórico</Link>
+        </Button>
       </div>
     </section>
   )
