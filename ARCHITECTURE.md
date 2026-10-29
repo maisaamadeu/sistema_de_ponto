@@ -91,14 +91,18 @@ Importações usam o alias `@/*` → `src/*`, configurado em `tsconfig` e
    de negócio não existe; leituras básicas (`listByDate`, `get`, `clear`) já
    exercitam o schema.
 
-## Fora de escopo (esta etapa)
+## Design system
+
+A fonte de verdade visual é [`DESIGN.md`](./DESIGN.md) (tokens, temas, shell,
+componentes compartilhados e anti-padrões). A implementação de UI deve preservar
+essa identidade.
+
+## Fora de escopo (base + design system demo)
 
 - Autenticação / contas
-- Cálculo de horas, banco de horas e saldos
-- Formulários de jornada e edição de registros
-- Tema claro/escuro funcional
+- Cálculo real de horas, banco de horas e saldos
+- Persistência completa de marcações
 - Implementação Firestore / Firebase
-- Design system completo (`DESIGN.md`) e polish visual final
 
 ## Como validar
 
