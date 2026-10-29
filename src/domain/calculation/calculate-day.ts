@@ -1,4 +1,5 @@
 import type { DayOverride, TimeEntry, WorkDay, WorkSchedule } from '@/domain/entities'
+import { createWorkDayId } from '@/domain/ids'
 
 import { classifyDayKind } from './classify-day'
 import { CalculationError, err, ok, type CalculationResult } from './errors'
@@ -24,9 +25,14 @@ export interface CalculateWorkDayInput {
    * Snapshot anterior do mesmo dia. Quando `expectedFrozen` é true,
    * a carga esperada histórica é preservada mesmo se a escala mudou.
    */
-  previous?: Pick<WorkDay, 'expectedMinutes' | 'expectedFrozen'> | null
+  previous?: Pick<
+    WorkDay,
+    'id' | 'expectedMinutes' | 'expectedFrozen' | 'createdAt'
+  > | null
   /** Referência temporal para sessões ainda abertas. */
   asOfIso?: string
+  /** Instantâneo usado em createdAt/updatedAt do materializado. */
+  nowIso?: string
 }
 
 function resolveExpectedMinutes(input: {
@@ -144,7 +150,10 @@ export function calculateWorkDay(
   const expectedFrozen =
     Boolean(input.previous?.expectedFrozen) || hasEntries || kind === 'confirmed_absence'
 
+  const nowIso = input.nowIso ?? new Date().toISOString()
+
   return ok({
+    id: input.previous?.id ?? createWorkDayId(input.userId, input.dateKey),
     userId: input.userId,
     dateKey: input.dateKey,
     kind,
@@ -154,5 +163,7 @@ export function calculateWorkDay(
     entryIds: dayEntries.map((entry) => entry.id),
     overrideId: input.override?.id,
     expectedFrozen,
+    createdAt: input.previous?.createdAt ?? nowIso,
+    updatedAt: nowIso,
   })
 }

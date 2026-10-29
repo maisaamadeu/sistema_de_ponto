@@ -18,6 +18,8 @@ export type DayKind =
  * não devem recalcular a carga esperada de dias já registrados.
  */
 export interface WorkDay {
+  /** Identificador estável (`wd_{userId}_{dateKey}`) para sync futura. */
+  id: string
   userId: string
   dateKey: string
   kind: DayKind
@@ -29,4 +31,6 @@ export interface WorkDay {
   overrideId?: string
   /** Indica que expectedMinutes deve ser preservado em recálculos. */
   expectedFrozen: boolean
+  createdAt: string
+  updatedAt: string
 }

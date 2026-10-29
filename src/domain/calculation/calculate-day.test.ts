@@ -165,8 +165,10 @@ describe('calculateWorkDay', () => {
       schedule: makeSchedule({ expectedDailyMinutes: 360 }),
       entries,
       previous: {
+        id: first.value.id,
         expectedMinutes: first.value.expectedMinutes,
         expectedFrozen: first.value.expectedFrozen,
+        createdAt: first.value.createdAt,
       },
     })
 

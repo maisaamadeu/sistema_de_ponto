@@ -1,22 +1,51 @@
-import type { TimeEntryRepository, WorkSettingsRepository } from '@/domain/repositories'
+import type {
+  DayOverrideRepository,
+  TimeEntryRepository,
+  UserPreferencesRepository,
+  UserProfileRepository,
+  WorkDayRepository,
+  WorkScheduleRepository,
+} from '@/domain/repositories'
 import {
+  DexieDayOverrideRepository,
   DexieTimeEntryRepository,
-  DexieWorkSettingsRepository,
+  DexieUserPreferencesRepository,
+  DexieUserProfileRepository,
+  DexieWorkDayRepository,
+  DexieWorkScheduleRepository,
+  ensureGuestSession,
+  getPontoDatabase,
+  type GuestSession,
+  type PontoDatabase,
 } from '@/infrastructure/persistence/dexie'
 
 /**
- * Composition root mínimo.
+ * Composition root.
  * Para migrar para Firestore, substitua apenas as instâncias abaixo.
  */
 export interface AppDependencies {
+  db: PontoDatabase
+  profiles: UserProfileRepository
+  preferences: UserPreferencesRepository
+  schedules: WorkScheduleRepository
   timeEntries: TimeEntryRepository
-  workSettings: WorkSettingsRepository
+  workDays: WorkDayRepository
+  dayOverrides: DayOverrideRepository
+  ensureGuestSession: () => Promise<GuestSession>
 }
 
-export function createAppDependencies(): AppDependencies {
+export function createAppDependencies(
+  db: PontoDatabase = getPontoDatabase(),
+): AppDependencies {
   return {
-    timeEntries: new DexieTimeEntryRepository(),
-    workSettings: new DexieWorkSettingsRepository(),
+    db,
+    profiles: new DexieUserProfileRepository(db),
+    preferences: new DexieUserPreferencesRepository(db),
+    schedules: new DexieWorkScheduleRepository(db),
+    timeEntries: new DexieTimeEntryRepository(db),
+    workDays: new DexieWorkDayRepository(db),
+    dayOverrides: new DexieDayOverrideRepository(db),
+    ensureGuestSession: () => ensureGuestSession(db),
   }
 }
 

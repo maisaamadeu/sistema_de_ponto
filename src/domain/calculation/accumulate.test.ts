@@ -15,6 +15,7 @@ function day(
   partial: Partial<WorkDay> = {},
 ): WorkDay {
   return {
+    id: `wd_${USER_ID}_${dateKey}`,
     userId: USER_ID,
     dateKey,
     kind: 'complete',
@@ -23,6 +24,8 @@ function day(
     balanceMinutes,
     entryIds: [],
     expectedFrozen: true,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
     ...partial,
   }
 }

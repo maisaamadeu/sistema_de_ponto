@@ -21,3 +21,24 @@ export class NotImplementedError extends RepositoryError {
     this.name = 'NotImplementedError'
   }
 }
+
+export class PersistenceError extends RepositoryError {
+  constructor(message: string, options?: ErrorOptions) {
+    super('PERSISTENCE_FAILED', message, options)
+    this.name = 'PersistenceError'
+  }
+}
+
+export class StorageUnavailableError extends RepositoryError {
+  constructor(message = 'Armazenamento local indisponível neste ambiente') {
+    super('STORAGE_UNAVAILABLE', message)
+    this.name = 'StorageUnavailableError'
+  }
+}
+
+export class StorageQuotaExceededError extends RepositoryError {
+  constructor(message = 'Espaço de armazenamento local esgotado') {
+    super('STORAGE_QUOTA_EXCEEDED', message)
+    this.name = 'StorageQuotaExceededError'
+  }
+}

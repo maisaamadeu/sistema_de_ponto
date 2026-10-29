@@ -13,6 +13,7 @@ export interface WorkPeriod {
  */
 export interface WorkSchedule {
   id: string
+  userId: string
   periods: WorkPeriod[]
   /** Dias da semana com jornada esperada (0 = domingo … 6 = sábado). */
   workweekDays: ReadonlyArray<0 | 1 | 2 | 3 | 4 | 5 | 6>
@@ -24,3 +25,12 @@ export interface WorkSchedule {
   createdAt: string
   updatedAt: string
 }
+
+export type CreateWorkScheduleInput = Omit<
+  WorkSchedule,
+  'id' | 'createdAt' | 'updatedAt'
+> & { id?: string }
+
+export type UpdateWorkScheduleInput = Partial<
+  Omit<WorkSchedule, 'id' | 'userId' | 'createdAt' | 'updatedAt'>
+>
